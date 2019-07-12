@@ -135,7 +135,7 @@ class DataSourceVMwareGuestInfo(sources.DataSource):
         # Ensure the metadata gets updated with information about the
         # host, including the network interfaces, default IP addresses,
         # etc.
-        self.metadata = always_merger.merge(self.metadata, host_info)
+        self.metadata = merge_meta_host_data(self.metadata, host_info)
 
         # Persist the instance data for versions of cloud-init that support
         # doing so. This occurs here rather than in the get_data call in
@@ -459,13 +459,24 @@ def get_host_info():
     return host_info
 
 
+def merge_meta_host_data(metadata, host_info):
+    # Combine host_info and metadata.
+    # Values in metada should be preserved as provided by the user
+    res = always_merger.merge(host_info, metadata)
+
+    # Make sure that the 'local-hostname' and 'hostname' are in sync.
+    # If the user provided 'local-hostname' override 'hostname' with 
+    # that value
+    res['hostname'] = res['local-hostname']
+
+
 def main():
     '''
     Executed when this file is used as a program.
     '''
     metadata = {'network': {'config': {'dhcp': True}}}
     host_info = get_host_info()
-    metadata = always_merger.merge(metadata, host_info)
+    metadata = merge_meta_host_data(metadata, host_info)
     print(util.json_dumps(metadata))
 
 
